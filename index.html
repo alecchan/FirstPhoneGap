@@ -4,8 +4,177 @@
 <head>
     <meta charset="utf-8" />
     <title></title>
+    <script src="zepto.min.js"></script>
+    <script src="geometry.js"></script>
+    <style>
+        html, body {
+            height: 100%;
+        }
+        /*#container{
+            width:300px;
+            height:300px;
+            background-color: azure;
+        }
+
+        #canvas {
+            width: 300px;
+            height: 300px;
+            background-color: red;
+        }*/
+       
+    </style>
 </head>
 <body>
-    This is my first PhoneGap application.
+    <div id="container">
+        <canvas id="canvas">
+
+        </canvas>
+    </div>
+    <script type="text/javascript">
+
+        function Ball(w, h) {
+
+            this.width = w;
+            this.height = h;
+            var mrg_x = 0.1 + w;
+            var x = Math.floor(Math.random() * (this.width - (2 * mrg_x)) + mrg_x);
+
+            var mrg_y = 0.1 + h;
+            var y = Math.floor(Math.random() * (this.height - (2 * mrg_y)) + mrg_y);
+
+            this.position = new Point2D(x, y);
+            this.speed = (Math.floor(Math.random() * 4) + 1); // Speed between 1 + 6
+            this.radius = 4;
+            this.direction = Math.floor(Math.random() * 360);
+            this.previousPosition;
+        }
+
+        Ball.prototype.updatePosition = function () {
+            var dir = this.direction;
+            if (this.position.x > this.width || this.position.x < 0)
+                this.direction = 2 * 90 - dir;
+            else if (this.position.y > this.height || this.position.y < 0)
+                this.direction = -dir;
+
+            this.previousPosition = new Clone(this.position);
+            this.position.x += Math.round(Math.cos(this.direction * (Math.PI / 180)) * this.speed);
+            this.position.y += Math.round(Math.sin(this.direction * (Math.PI / 180)) * this.speed);
+        };
+
+        Ball.prototype.findNearest = function (balls) {
+            var minDistance = 999999;
+            var n = null;
+            for (var i = 0; i < balls.length; i++) {
+                b = balls[i];
+                if (b != this) {
+                    var distance = Math.sqrt(Math.pow(b.position.x - this.position.x, 2) + Math.pow(b.position.y - this.position.y, 2));
+
+                    if (minDistance > distance) {
+                        minDistance = distance;
+                        n = b;
+                    }
+                }
+            }
+
+            return n;
+        }
+
+        Ball.prototype.draw = function (ctx) {
+
+            ctx.beginPath();
+            ctx.arc(this.position.x, this.position.y, this.radius, 0, 2 * Math.PI, false);
+            ctx.fillStyle = 'green';
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#003300';
+            ctx.stroke();
+        }
+
+        function Tether(src, tgt) {
+            this.source = src;
+            this.target = tgt;
+        }
+
+        Tether.prototype.draw = function (ctx) {
+            ctx.beginPath();
+            ctx.moveTo(this.source.position.x, this.source.position.y);
+            ctx.lineTo(this.target.position.x, this.target.position.y);
+            ctx.fillStyle = 'green';
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#003300';
+            ctx.stroke();
+        }
+
+        function Stage() {
+            var host = document.getElementById("container");
+
+            var width = document.body.clientWidth;
+            var height = document.body.clientHeight;
+            
+           // this.host.setAttribute('width', width);
+          //  this.host.setAttribute('height', height);
+           // this.host.setAttribute('position', 'absolute');
+       
+            this.FrameRate = 1000 / 30;
+            this.balls = new Array();
+            for (var i = 0; i < 100; i++) {
+                b = new Ball(width, height);
+                this.balls.push(b);
+            }
+
+            this.tethers = new Array();
+
+            // this.ball1 = new Ball(width, height);
+
+            this.canvas = document.getElementById("canvas");
+            this.canvas.setAttribute('width', width);
+            this.canvas.setAttribute('height', height);
+            this.canvas.setAttribute('position', 'absolute');
+            this.ctx = this.canvas.getContext("2d");
+
+            setInterval(this.mainLoop, this.FrameRate);
+
+            // Define the sides of the arena
+            this.arenaWalls = new Array();
+            this.arenaWalls.push(new Point2D(0, 0));
+            this.arenaWalls.push(new Point2D(width, 0));
+            this.arenaWalls.push(new Point2D(width, height));
+            this.arenaWalls.push(new Point2D(0, height));
+            this.arenaWalls.push(new Point2D(0, 0));
+        }
+
+        Stage.prototype.mainLoop = function () {
+            theStage.updateGame();
+            theStage.drawGame();
+        }
+
+        Stage.prototype.updateGame = function () {
+            this.tethers = new Array();
+            for (var i = 0; i < this.balls.length; i++) {
+                var b = this.balls[i];
+
+                b.updatePosition();
+                var n = b.findNearest(this.balls);
+                if (n != null)
+                    this.tethers.push(new Tether(b, n));
+            }
+        };
+
+        Stage.prototype.drawGame = function () {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+            for (var i = 0; i < this.tethers.length; i++) {
+                this.tethers[i].draw(this.ctx);
+            }
+
+            for (var i = 0; i < this.balls.length; i++) {
+                b = this.balls[i];
+                b.draw(this.ctx);
+            }
+        };
+
+        var theStage = new Stage();
+    </script>
 </body>
 </html>
